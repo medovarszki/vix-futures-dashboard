@@ -16,7 +16,7 @@ interface Props {
  * next to the price of trading the two legs separately.
  */
 export function SpreadCalculator({ rows, near, far, onNear, onFar }: Props) {
-  const quote = usePolling(() => api.getSpread(near.conid, far.conid), 1000, [near.conid, far.conid]);
+  const [quote, quoteError] = usePolling(() => api.getSpread(near.conid, far.conid), 1000, [near.conid, far.conid]);
   // the quote carries the legs of the same moment as the listed spread, the curve may be a tick older
   const fromCurve = legSpread(near, far);
   const legs = quote ? { ...fromCurve, buy: quote.synthetic.ask, sell: quote.synthetic.bid, mid: quote.synthetic.mid } : fromCurve;
@@ -54,6 +54,7 @@ export function SpreadCalculator({ rows, near, far, onNear, onFar }: Props) {
             </div>
           </div>
           {native?.stream_error && <div className="down small">Nincs jegyzés: {native.stream_error}</div>}
+          {quoteError && <div className="down small">A spread jegyzése nem érhető el: {quoteError}</div>}
           <div className="two">
             <Price title="Megveszem" value={num(native?.ask)} className="ask" note="a spread ask ára" />
             <Price title="Eladom" value={num(native?.bid)} className="bid" note="a spread bid ára" />

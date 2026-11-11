@@ -23,12 +23,14 @@ export function HistoryTab({ rows, spot }: { rows: CurveRow[]; spot?: MarketPric
   const [pick, setPick] = useState<number>();
   const [visible, setVisible] = useState<Record<string, boolean>>({ live: true, prev: true, month: true, pick: true });
   const [ref, measured] = useElementWidth<HTMLDivElement>();
+  const [state, setState] = useState<'loading' | 'ready' | 'empty' | string>('loading');
 
   useEffect(() => {
     api.getCurveHistory().then((result) => {
       setHistory(result);
       setPick(Math.max(0, result.length - 41));
-    });
+      setState(result.length > 1 ? 'ready' : 'empty');
+    }, (e) => setState(e instanceof Error ? e.message : String(e)));
   }, []);
 
   const series = useMemo<Series[]>(() => {
@@ -50,8 +52,14 @@ export function HistoryTab({ rows, spot }: { rows: CurveRow[]; spot?: MarketPric
     ];
   }, [history, pick, rows, spot]);
 
-  if (!history.length || pick == null) {
-    return <div className="state">Betöltés…</div>;
+  if (state === 'loading') {
+    return <div className="state">Történeti adatok betöltése… (lejáratonként egy lekérdezés, ez eltarthat egy ideig)</div>;
+  }
+  if (state === 'empty') {
+    return <div className="state">Nincs történeti adat.</div>;
+  }
+  if (state !== 'ready' || pick == null) {
+    return <div className="state down">A történeti adatok nem érhetők el: {state}</div>;
   }
 
   const shown = series.filter((s) => visible[s.id]);
@@ -160,15 +168,15 @@ export function HistoryTab({ rows, spot }: { rows: CurveRow[]; spot?: MarketPric
                 <tr key={s.id} className={s.live ? '' : 'no-border'}>
                   <td className={`l strong s-${s.id}`}><i className="swatch" />{s.label}</td>
                   <td className="l num muted">{s.date}</td>
-                  {s.values.map((v, k) => <td key={k} className="num">{num(v)}</td>)}
+                  {liveValues.map((_, k) => <td key={k} className="num">{num(s.values[k])}</td>)}
                   <td className="num">{num(spread)}</td>
                   <td className="num">{signed(c)}%</td>
                 </tr>,
                 !s.live && (
                   <tr key={`${s.id}-diff`} className="diff">
                     <td className="l" colSpan={2}>élő − ez a nap</td>
-                    {s.values.map((v, k) => (
-                      <td key={k} className="num">{signed(v != null && liveValues[k] != null ? liveValues[k]! - v : null)}</td>
+                    {liveValues.map((liveValue, k) => (
+                      <td key={k} className="num">{signed(s.values[k] != null && liveValue != null ? liveValue - s.values[k]! : null)}</td>
                     ))}
                     <td className="num">{signed(spread != null && liveSpread != null ? liveSpread - spread : null)}</td>
                     <td className="num">{signed(c != null && liveContango != null ? liveContango - c : null)} %p</td>

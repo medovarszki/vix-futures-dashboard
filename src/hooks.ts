@@ -23,12 +23,15 @@ export function useElementWidth<T extends HTMLElement>(): [(element: T | null) =
  * Calls the loader immediately and then periodically; a slow answer never overtakes a newer one.
  * The value of the previous keys is dropped when the keys change.
  */
-export function usePolling<T>(loader: () => Promise<T>, intervalMs: number, keys: unknown[]): T | undefined {
+export function usePolling<T>(loader: () => Promise<T>, intervalMs: number, keys: unknown[]): [T | undefined, string | undefined] {
   const [value, setValue] = useState<T>();
+  /** Message of the latest failure, cleared by the next successful answer; the last value is kept meanwhile */
+  const [error, setError] = useState<string>();
   useEffect(() => {
     let active = true;
     let running = false;
     setValue(undefined);
+    setError(undefined);
     const tick = async () => {
       if (running) {
         return;
@@ -38,9 +41,12 @@ export function usePolling<T>(loader: () => Promise<T>, intervalMs: number, keys
         const result = await loader();
         if (active) {
           setValue(result);
+          setError(undefined);
         }
       } catch (e) {
-        console.error(e);
+        if (active) {
+          setError(e instanceof Error ? e.message : String(e));
+        }
       } finally {
         running = false;
       }
@@ -53,5 +59,5 @@ export function usePolling<T>(loader: () => Promise<T>, intervalMs: number, keys
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, keys);
-  return value;
+  return [value, error];
 }

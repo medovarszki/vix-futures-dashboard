@@ -120,7 +120,8 @@ function IntradaySpread({ near, far, prev }: { near: CurveRow; far: CurveRow; pr
   const [ticks, setTicks] = useState<SpreadTick[]>([]);
   useEffect(() => {
     let active = true;
-    api.getSpreadIntraday(near.conid, far.conid).then((result) => active && setTicks(result));
+    setTicks([]);
+    api.getSpreadIntraday(near.conid, far.conid).then((result) => active && setTicks(result), console.warn);
     return () => {
       active = false;
     };

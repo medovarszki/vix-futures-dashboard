@@ -59,6 +59,8 @@ main { max-width: 1680px; margin: 0 auto; padding: 20px 24px 40px; display: flex
 .card.pad { padding: 16px; }
 .card-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; }
 
+.banner { padding: 10px 16px; border-radius: 8px; background: #3a2a12; color: #f2c078; }
+
 /* curve chart */
 .chart-block { display: flex; flex-direction: column; gap: 12px; }
 .chart-head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 24px; }

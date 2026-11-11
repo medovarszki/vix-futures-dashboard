@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { api } from './api';
+import { api, dataSource } from './api';
 import type { ContractDto } from './api/types';
 import { CurveChart } from './components/CurveChart';
 import { Header } from './components/Header';
@@ -27,11 +27,11 @@ export function App() {
   const [pair, setPair] = useState({ near: 0, far: 1 });
 
   useEffect(() => {
-    api.getFuturesChain().then(setChain, (e) => setError(String(e)));
+    api.getFuturesChain().then(setChain, (e) => setError(e instanceof Error ? e.message : String(e)));
   }, []);
 
   const spotConid = chain?.[0]?.underlying_conid;
-  const prices = usePolling(
+  const [prices, pricesError] = usePolling(
     async () => (chain ? api.getPrices([...(spotConid ? [spotConid] : []), ...chain.map((c) => c.conid)]) : undefined),
     PRICE_INTERVAL_MS,
     [chain],
@@ -46,16 +46,26 @@ export function App() {
   const selectFar = (index: number) => setPair((p) => ({ far: index, near: p.near < index ? p.near : index - 1 }));
 
   if (error) {
-    return <div className="state">Nem sikerült betölteni a futures láncot: {error}</div>;
+    return <div className="state down">Nem sikerült betölteni a futures láncot: {error}</div>;
+  }
+  if (chain && chain.length < 2) {
+    return <div className="state down">A futures lánc kevesebb mint két lejáratot tartalmaz.</div>;
   }
   if (!rows.length || !near || !far) {
-    return <div className="state">Betöltés…</div>;
+    return <div className="state">{pricesError ? <span className="down">Nincs ár: {pricesError}</span> : 'Betöltés…'}</div>;
   }
+  const stale = rows.filter((row) => row.price.stale).length;
 
   return (
     <div className="app">
-      <Header spot={spot} />
+      <Header spot={spot} front={rows[0].price} mock={dataSource === 'mock'} />
       <main>
+        {pricesError && <div className="banner" role="alert">Az árak nem frissülnek: {pricesError}</div>}
+        {!pricesError && stale > 0 && (
+          <div className="banner" role="status">
+            {stale} lejárat jegyzése elavult (nincs friss bid/ask) – a piac zárva lehet, vagy nincs piaci adat előfizetés.
+          </div>
+        )}
         <section className="card pad">
           <CurveChart rows={rows} spot={spot} near={near} far={far} />
         </section>

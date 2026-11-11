@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import type { MarketPrice } from '../api/types';
 import { clock, num, signed, tone } from '../format';
 
-export function Header({ spot }: { spot?: MarketPrice }) {
+export function Header({ spot, front, mock }: { spot?: MarketPrice; front: MarketPrice; mock: boolean }) {
   const [now, setNow] = useState(new Date());
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 1000);
@@ -21,9 +21,9 @@ export function Header({ spot }: { spot?: MarketPrice }) {
       </div>
       <div className="grow" />
       <div className="pills">
-        <span className="pill"><span className="num live">{spot?.market_data_type ?? '–'}</span></span>
+        <span className="pill"><span className="num live">{front.market_data_type ?? '–'}</span></span>
         <span className="num muted">{clock(now)}</span>
-        <span className="pill mock">Mintaadat</span>
+        {mock ? <span className="pill mock">Mintaadat</span> : <span className="pill">IBKR</span>}
       </div>
     </header>
   );
